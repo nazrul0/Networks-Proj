@@ -3,7 +3,7 @@ udp_ser.c The source file of the server in UDP transmission
 **/
 #include "headsock.h"
 
-void str_ser1(int sockfd, struct sockaddr *addr, int addrlen, int *len);	// function to transmit and receive
+void str_ser(int sockfd, struct sockaddr *addr, int addrlen, int *len);	// function to transmit and receive
 
 int main(int argc, char *argv[])
 {
@@ -29,14 +29,12 @@ int main(int argc, char *argv[])
 	
 	// transmit and receive
 	printf("start receiving\n");
-	while(1) {
-		str_ser(sockfd, (struct sockaddr *)&ser_addr, sizeof(struct sockaddr_in), &len);
-	}
+	str_ser(sockfd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr_in), &len);
 	close(sockfd);
 	exit(0);
 }
 
-void str_ser1(int sockfd, struct sockaddr *addr, int addrlen, int *len)
+void str_ser(int sockfd, struct sockaddr *addr, int addrlen, int *len)
 {
 	// init
 	char buf[BUFSIZE];
@@ -45,8 +43,6 @@ void str_ser1(int sockfd, struct sockaddr *addr, int addrlen, int *len)
 	int end, n = 0;
 	long lseek = 0;
 	end = 0;
-	struct sockaddr_in src_addr;
-	int src_addr_len = sizeof(struct sockaddr_in);
 	
 	// receive packets
 	// simulate random errors. generate random number. if less than ERROR_PROB, ignore and send NACK. if higher, receive and send ACK
@@ -56,6 +52,7 @@ void str_ser1(int sockfd, struct sockaddr *addr, int addrlen, int *len)
 	while(!end)
 	{
 		float error_chance = ((float)rand()/(float)(RAND_MAX)) * 1;
+		printf("error chance: %f, ERROR_PROB: %f\n", error_chance, ERROR_PROB);
 		if (error_chance < ERROR_PROB)
 		{
 			// ignore and send NACK
@@ -63,15 +60,17 @@ void str_ser1(int sockfd, struct sockaddr *addr, int addrlen, int *len)
 			ack.num = -1;
 			ack.len = 0;
 
-			char ack_buf[sizeof(ack)];
-			memcpy(ack_buf, &ack, sizeof(ack));
+			// char ack_buf[sizeof(ack)];
+			// memcpy(ack_buf, &ack, sizeof(ack));
+			// int sent = sendto(sockfd, &ack_buf, strlen(ack_buf), 0, addr, addrlen); 
 
-			sendto(sockfd, &ack_buf, strlen(ack), 0, addr, addrlen); 
+			int sent = sendto(sockfd, &ack, 2, 0, addr, addrlen);
+			printf("NACK sent: %d\n", sent);
 		}
 		else
 		{
 			// receive packet and send ACK
-			if ((n=recvfrom(sockfd, &recvs, DATALEN, 0, (struct sockaddr *)&src_addr, &src_addr_len)) == -1) {
+			if ((n=recvfrom(sockfd, &recvs, DATALEN, 0, addr, (socklen_t *)&addrlen)) == -1) {
 				printf("error receiving");
 				exit(1);
 		 	}
@@ -82,16 +81,19 @@ void str_ser1(int sockfd, struct sockaddr *addr, int addrlen, int *len)
 			}
 
 			memcpy((buf+lseek), recvs, n);
+			printf("received %d bytes of data: %s\n", n, recvs);
 			lseek += n;
 
 			struct ack_so ack;
 			ack.num = 1;
 			ack.len = 0;
 
-			char ack_buf[sizeof(ack)];
-			memcpy(ack_buf, &ack, sizeof(ack));
-			
-			sendto(sockfd, &ack_buf, strlen(ack), 0, addr, addrlen);
+			// char ack_buf[sizeof(ack)];
+			// memcpy(ack_buf, &ack, sizeof(ack));		
+			// int sent = sendto(sockfd, &ack_buf, strlen(ack_buf), 0, addr, addrlen);
+
+			int sent = sendto(sockfd, &ack, 2, 0, addr, addrlen);
+			printf("ACK sent: %d\n", sent);
 		}
 	}
 	

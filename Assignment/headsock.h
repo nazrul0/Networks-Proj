@@ -14,10 +14,10 @@
 
 #define NEWFILE (O_WRONLY|O_CREAT|O_TRUNC)
 #define MYUDP_PORT 5350
-#define DATALEN 500
-#define BUFSIZE 60000
+#define BUFSIZE 70000
 #define PACKLEN 508
 #define HEADLEN 8
+#define DATALEN 500
 #define ERROR_PROB 0.1
 
 struct pack_so			// data packet structure
